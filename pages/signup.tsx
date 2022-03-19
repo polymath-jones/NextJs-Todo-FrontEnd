@@ -26,7 +26,7 @@ const Signup = () => {
     urlencoded.append("email", email);
     urlencoded.append("password", password);
 
-    fetch("http://localhost:3100/auth/register", {
+    fetch("https://todocatlog1.herokuapp.com/auth/register", {
       method: "POST",
       headers: myHeaders,
       body: urlencoded,

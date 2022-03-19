@@ -33,7 +33,7 @@ const Home: NextPage = () => {
     var myHeaders = new Headers();
     myHeaders.append("Authorization", `Bearer ${authDetails.token}`);
 
-    fetch(`http://localhost:3100/todo/todos?user=${authDetails.user}`, {
+    fetch(`https://todocatlog1.herokuapp.com/todo/todos?user=${authDetails.user}`, {
       method: "GET",
       headers: myHeaders,
       redirect: "follow",
