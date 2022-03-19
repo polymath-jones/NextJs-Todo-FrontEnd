@@ -110,7 +110,7 @@ const Home: NextPage = () => {
     urlencoded.append("done", "false");
     urlencoded.append("user", authDetails.user);
 
-    fetch("http://localhost:3100/todo/create", {
+    fetch("https://todocatlog1.herokuapp.com/todo/create", {
       method: "POST",
       headers: myHeaders,
       body: urlencoded,
