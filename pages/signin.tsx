@@ -1,26 +1,46 @@
 import styles from "../styles/Home.module.css";
-import { useRef, useState } from "react";
+import { useRef, useState, useContext } from "react";
 import Link from "next/link";
-import { getAuth,signInWithEmailAndPassword } from "firebase/auth";
-import Router  from "next/router";
+import Router from "next/router";
+import { AuthContext, AuthDispatchContext } from "../components/auth";
 
 const Signin = () => {
-
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const auth = getAuth();
-  function handleSignIn() {
 
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        Router.push('/')
+  const setAuthDetails = useContext(AuthDispatchContext);
+
+  function handleSignIn() {
+    var myHeaders = new Headers();
+    // myHeaders.append("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imt5QGdoLmNvbSIsImlhdCI6MTY0NzU5Mzk5MCwiZXhwIjoxNjQ4MTk4NzkwfQ.ay6DcvgQGu4i3fGJ1WxmQx2OxEcbz1SSLob2O5EjtWY");
+    myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+
+    var urlencoded = new URLSearchParams();
+    urlencoded.append("email", email);
+    urlencoded.append("password", password);
+
+    fetch("http://localhost:3100/auth/login", {
+      method: "POST",
+      headers: myHeaders,
+      body: urlencoded,
+      redirect: "follow",
+    })
+      .then((response) => response.text())
+      .then((result) => {
+        const res = JSON.parse(result);
+
+        setAuthDetails({
+          user: res["user"]!["email"],
+          token: res["token"],
+          loggedIn: true,
+        });
+
+        Router.push("/");
       })
       .catch((error) => {
         const errorCode = error.code;
         const errorMessage = error.message;
-        console.log(errorCode,errorMessage);
-        
+        console.log(errorCode, errorMessage);
       });
   }
 

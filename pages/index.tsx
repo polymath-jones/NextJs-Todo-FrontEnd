@@ -1,9 +1,18 @@
 import type { NextPage } from "next";
 import cx from "classnames";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import styles from "../styles/Home.module.css";
 import { getAuth } from "firebase/auth";
 import Router from "next/router";
+import { AuthContext, AuthDispatchContext } from "../components/auth";
+
+interface Todo {
+  id: string;
+  value: string;
+  modified: Date;
+  done: boolean;
+  user: string;
+}
 
 function generateID(): string {
   let s4 = () => {
@@ -15,32 +24,50 @@ function generateID(): string {
   return gid;
 }
 const Home: NextPage = () => {
-  var user = getAuth().currentUser;
-  console.log(user);
+  const [inputValue, setValue] = useState("");
+  const [items, setItems] = useState<Todo[]>([]);
+  const authDetails = useContext(AuthContext);
+  const setAuthDetails = useContext(AuthDispatchContext);
+
+  function getTodos() {
+    var myHeaders = new Headers();
+    myHeaders.append("Authorization", `Bearer ${authDetails.token}`);
+
+    fetch(`http://localhost:3100/todo/todos?user=${authDetails.user}`, {
+      method: "GET",
+      headers: myHeaders,
+      redirect: "follow",
+    })
+      .then((response) => response.text())
+      .then((result) => {
+        const res = JSON.parse(result);
+        const todos = res as Todo[];
+        setItems(todos);
+        console.log(todos);
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.log(errorCode, errorMessage);
+      });
+  }
 
   useEffect(() => {
-    if (!user) {
+    if (!authDetails.loggedIn) {
       Router.push("/signin");
-      console.log(user);
+    } else {
+      getTodos();
     }
   }, []);
 
-  var [inputValue, setValue] = useState("");
-  var [items, setItems] = useState([
-    {
-      id: generateID(),
-      value: "first item",
-      done: false,
-    },
-  ]);
   function sort() {
-    const notdone = items.filter((value) => {
+    const notdone = items!.filter((value) => {
       if (!value.done) {
         return value;
       }
     });
 
-    const done = items.filter((value) => {
+    const done = items!.filter((value) => {
       if (value.done) {
         return value;
       }
@@ -50,7 +77,7 @@ const Home: NextPage = () => {
     setItems(sorted);
   }
   function markdone(id: string) {
-    const itemsToggled = items.map((value) => {
+    const itemsToggled = items!.map((value) => {
       if (value.id == id) {
         value.done = !value.done;
       }
@@ -60,22 +87,53 @@ const Home: NextPage = () => {
     sort();
   }
   function addItem() {
+    const id = generateID();
     const newItems = [
       {
-        id: generateID(),
+        id: id,
         value: inputValue,
         done: false,
       },
-      ...items,
+      ...items!,
     ];
 
-    setItems(newItems);
-  }
+    setItems(newItems as Todo[]);
 
-  function signout(): void {
-    getAuth().signOut().then(()=>{
-      Router.push("/signin");
+    const myHeaders = new Headers();
+    myHeaders.append("Authorization", `Bearer ${authDetails.token}`);
+    myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+
+    const urlencoded = new URLSearchParams();
+    urlencoded.append("id", id);
+    urlencoded.append("value", inputValue);
+    urlencoded.append("modified", "2023");
+    urlencoded.append("done", "false");
+    urlencoded.append("user", authDetails.user);
+
+    fetch("http://localhost:3100/todo/create", {
+      method: "POST",
+      headers: myHeaders,
+      body: urlencoded,
+      redirect: "follow",
     })
+      .then((response) => response.text())
+      .then((result) => {
+        const res = JSON.parse(result);
+        console.log(res);
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.log(errorCode, errorMessage);
+      });
+  }
+  function signout(): void {
+    setAuthDetails({
+      user: "",
+      token: "",
+      loggedIn: false,
+    });
+    Router.push("/signin");
   }
 
   return (
@@ -103,7 +161,7 @@ const Home: NextPage = () => {
         add
       </button>
       <ul>
-        {items.map((item, index) => {
+        {items!.map((item, index) => {
           const { value, id, done } = item;
           return (
             <li
